@@ -1,13 +1,13 @@
 package redis
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/go-redis/redis"
 	"github.com/spf13/viper"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
-	"golang.org/x/net/context"
 )
 
 const (
@@ -62,32 +62,33 @@ type Redis struct {
 func NewClient(uri string, port int, pwd string, db int) (*Redis) {
 	return &Redis{
 		client: redis.NewClient(&redis.Options{
-		Addr: fmt.Sprintf("%s:%d", viper.GetString("redis.uri"), viper.GetInt("redis.port")),
-		Password: viper.GetString("redis.password"),
-		DB: viper.GetInt("redis.database"),
-	})}
+			Addr: fmt.Sprintf("%s:%d", uri, port),
+			Password: pwd,
+			DB: db,
+		}),
+	}
 }
 
-func (c *Redis) SaveToFile(ctx context.Context) {
-	tracer := otel.Tracer("redis")
-	var span trace.Span
-	_, span = tracer.Start(ctx, "SaveValues")
-	defer span.End()
+// func (c *Redis) SaveToFile(ctx context.Context) {
+// 	tracer := otel.Tracer("redis")
+// 	var span trace.Span
+// 	_, span = tracer.Start(ctx, "SaveValues")
+// 	defer span.End()
 
-	span.AddEvent("Client defined")
+// 	span.AddEvent("Client defined")
 
-	c.saveStrings()
-	span.AddEvent("Strings saved to configuration file")
+// 	c.saveStrings()
+// 	span.AddEvent("Strings saved to configuration file")
 
-	c.saveInts()
-	span.AddEvent("Integer saved to configuration file")
+// 	c.saveInts()
+// 	span.AddEvent("Integer saved to configuration file")
 
-	c.saveBools()
-	span.AddEvent("Booleans saved to configuration file")
+// 	c.saveBools()
+// 	span.AddEvent("Booleans saved to configuration file")
 
-	c.saveSliceStrings()
-	span.AddEvent("Slice of Strings saved to configuration file")
-}
+// 	c.saveSliceStrings()
+// 	span.AddEvent("Slice of Strings saved to configuration file")
+// }
 
 func (c *Redis) LoadFromFile(ctx context.Context) {
 	tracer := otel.Tracer("redis")
@@ -110,27 +111,14 @@ func (c *Redis) LoadFromFile(ctx context.Context) {
 	span.AddEvent("Slice of Strings loaded from configuration file")
 }
 
-func (c *Redis) LoadToViper(ctx context.Context) {
-	for _, key := range varStrings {
-		viper.Set(key, c.GetString(key))
-	}
-
-	for _, key := range varInts {
-		viper.Set(key, c.GetInt(key))
-	}
-
-	for _, key := range varBools {
-		viper.Set(key, c.GetBool(key))
-	}
-
-	for _, key := range varSliceStrings {
-		viper.Set(key, c.GetSliceString(key))
-	}
-}
-
-func (c *Redis) GetAllKeys() ([]string) {
-	return viper.AllKeys()
-}
+// func (c *Redis) GetAllKeys() (map[string][]string) {
+// 	return map[string][]string{
+// 		"string": varStrings,
+// 		"int": varInts,
+// 		"bool": varBools,
+// 		"sliceString": varSliceStrings,
+// 	}
+// }
 
 func (c *Redis) GetString(k string) (string) {
 	return c.client.Get(k).String()
