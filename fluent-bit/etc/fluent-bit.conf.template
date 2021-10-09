@@ -1,0 +1,32 @@
+[SERVICE]
+    Parsers_File    parsers.conf
+    Log_Level       debug
+
+[INPUT]
+    Name            docker
+    Interval_Sec    2
+
+[INPUT]
+    Name    forward
+    Listen  0.0.0.0
+    Port    24224
+
+[FILTER]
+    Name            parser
+    Match           ${IMAGE_NAME}*
+    Parser          json
+    Key_Name        log
+    Reserve_Data    On
+
+[OUTPUT]
+    Name            es
+    Match           *
+    Host            elasticsearch
+    Port            9200
+    Retry_Limit     20
+    Replace_Dots    On
+    Index           ${ES_INDEX}
+
+[OUTPUT]
+    Name    stdout
+    Match   *

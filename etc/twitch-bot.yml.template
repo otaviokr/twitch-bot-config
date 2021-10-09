@@ -1,0 +1,56 @@
+irc:
+  target: "irc.chat.twitch.tv:6697"
+  ssl: true
+  nickname: "already-register-username"
+  # Get the OAuth password at https://twitchapps.com/tmi/
+  password: "oauth:1234567890abcdef"
+  channels:
+    - "#somechannel01"
+
+jaeger:
+  uri: "http://jaeger:14268/api/traces"
+  service: "botavio_kr-twitch"
+	environment: "development"
+	id: 1
+
+log:
+  level: "debug"
+  # If containerized, do not change this path.
+  # Use the volume to save the log where you want in the host server.
+  path: "logs/botaviokr-twitch-bot.log"
+
+mqtt:
+  # Use a normal IP if you are running the bot as a stand-alone app.
+  #broker: "127.0.0.1"
+  # This is usually the docker IP from the host server.
+  broker: "172.17.0.1"
+  port: "11883"
+  clientId: "botavio_kr"
+
+prometheus:
+  port: 2112
+
+redis:
+  uri: "redis"
+  port: 6379
+  password: ""
+  database: 0
+
+triggers:
+
+  guestbook:
+    topic: "your/topic/here"
+
+  bot:
+    owner: "Otavio_KR"
+    repository: "github.com/otaviokr/botaviokr-twitch-bot"
+
+  socialmedia:
+    github: "https://github.com/otaviokr"
+    twitter: "https://twitter.com/okrofatto"
+    #youtube: "https://youtube.com/otaviokr"
+
+  streamholics:
+    friends:
+      - otavio_kr
+      - some_other_user

@@ -1,3 +1,11 @@
+/etc/*
+!/etc/twitch-bot.yml.template
+
+/fluent-bit/etc/*
+!/fluent-bit/etc/fluent-bit.conf.template
+
+/logs
+
 # Binaries for programs and plugins
 *.exe
 *.exe~
