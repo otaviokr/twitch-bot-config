@@ -128,6 +128,10 @@ func (c *Redis) LoadToViper(ctx context.Context) {
 	}
 }
 
+func (c *Redis) GetAllKeys() ([]string) {
+	return viper.AllKeys()
+}
+
 func (c *Redis) GetString(k string) (string) {
 	return c.client.Get(k).String()
 }
