@@ -135,7 +135,7 @@ func (c *Redis) GetBool(k string) (bool) {
 }
 
 func (c *Redis) GetSliceString(k string) ([]string) {
-	return []string{c.client.Get(k).Val()}
+	return c.client.SMembers(k).Val()
 }
 
 func (c *Redis) saveStrings() {
@@ -158,6 +158,6 @@ func (c *Redis) saveBools() {
 
 func (c *Redis) saveSliceStrings() {
 	for _, key := range varSliceStrings {
-		c.client.Set(key, viper.GetStringSlice(key), 0)
+		c.client.SAdd(key, viper.GetStringSlice(key))
 	}
 }
