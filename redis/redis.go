@@ -121,7 +121,7 @@ func (c *Redis) LoadFromFile(ctx context.Context) {
 // }
 
 func (c *Redis) GetString(k string) (string) {
-	return c.client.Get(k).String()
+	return c.client.Get(k).Val()
 }
 
 func (c *Redis) GetInt(k string) (int) {
@@ -135,7 +135,7 @@ func (c *Redis) GetBool(k string) (bool) {
 }
 
 func (c *Redis) GetSliceString(k string) ([]string) {
-	return []string{c.client.Get(k).String()}
+	return []string{c.client.Get(k).Val()}
 }
 
 func (c *Redis) saveStrings() {
