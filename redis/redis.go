@@ -69,27 +69,6 @@ func NewClient(uri string, port int, pwd string, db int) (*Redis) {
 	}
 }
 
-// func (c *Redis) SaveToFile(ctx context.Context) {
-// 	tracer := otel.Tracer("redis")
-// 	var span trace.Span
-// 	_, span = tracer.Start(ctx, "SaveValues")
-// 	defer span.End()
-
-// 	span.AddEvent("Client defined")
-
-// 	c.saveStrings()
-// 	span.AddEvent("Strings saved to configuration file")
-
-// 	c.saveInts()
-// 	span.AddEvent("Integer saved to configuration file")
-
-// 	c.saveBools()
-// 	span.AddEvent("Booleans saved to configuration file")
-
-// 	c.saveSliceStrings()
-// 	span.AddEvent("Slice of Strings saved to configuration file")
-// }
-
 func (c *Redis) LoadFromFile(ctx context.Context) {
 	tracer := otel.Tracer("redis")
 	var span trace.Span
@@ -111,14 +90,9 @@ func (c *Redis) LoadFromFile(ctx context.Context) {
 	span.AddEvent("Slice of Strings loaded from configuration file")
 }
 
-// func (c *Redis) GetAllKeys() (map[string][]string) {
-// 	return map[string][]string{
-// 		"string": varStrings,
-// 		"int": varInts,
-// 		"bool": varBools,
-// 		"sliceString": varSliceStrings,
-// 	}
-// }
+func (c *Redis) Ping() (string) {
+	return c.client.Ping().Val()
+}
 
 func (c *Redis) GetString(k string) (string) {
 	return c.client.Get(k).Val()
