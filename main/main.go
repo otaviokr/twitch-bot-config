@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -71,11 +72,29 @@ func main() {
 	}
 }
 
+// SetupCloseHandler creates a listener on a new goroutine which will notify the program if it receives an interrupt from the OS.
+// We then handle this by calling our clean up procedure and exiting the program.
+func SetupCloseHandler(ctx context.Context) {
+	c := make(chan os.Signal)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-c
+		tracer := otel.Tracer("main")
+		var span trace.Span
+		_, span = tracer.Start(ctx, "SetupCloseHandler")
+		defer span.End()
+
+		log.Warn("SIGTERM received. Closing program")
+		span.AddEvent("SIGTERM received... closing program")
+		os.Exit(0)
+	}()
+}
+
 // ReadConfig will parse the properties file.
 func readConfig(ctx context.Context) {
-	tracer := otel.Tracer("main/readConfig")
+	tracer := otel.Tracer("readConfig")
 	var span trace.Span
-	newCtx, span := tracer.Start(ctx, "readConfig", trace.WithAttributes(attribute.String("hello", "world")))
+	newCtx, span := tracer.Start(ctx, "readConfig")
 	defer span.End()
 
 	span.AddEvent("Defining config file(s)")
@@ -113,7 +132,7 @@ func readConfig(ctx context.Context) {
 
 // SendToRedis will load the contents of the configuration file into the redis instance.
 func sendToRedis(ctx context.Context) {
-	tracer := otel.Tracer("main/readConfig")
+	tracer := otel.Tracer("main")
 	var span trace.Span
 	newCtx, span := tracer.Start(ctx, "sendToRedis")
 	defer span.End()
@@ -130,11 +149,19 @@ func sendToRedis(ctx context.Context) {
 		db = r.RedisDefaultPort
 	}
 
-	client := r.NewClient(os.Getenv("REDIS_URI"), port, os.Getenv("REDIS_PASSWORD"), db)
-	client.LoadFromFile(newCtx)
+	client := r.NewClient(ctx, os.Getenv("REDIS_URI"), port, os.Getenv("REDIS_PASSWORD"), db)
+	if strings.EqualFold(client.Ping(), "PONG") {
+		span.AddEvent("Connected to Redis")
+		client.LoadFromFile(newCtx)
+	} else {
+		log.WithFields(
+			log.Fields{
+				"error": "ping failed",
+			}).Error("connection to Redis failed")
+	}
 }
 
-// tracerProvider returns an OpenTelemetry TracerProvider configured to use
+// jaegerTracerProvider returns an OpenTelemetry TracerProvider configured to use
 // the Jaeger exporter that will send spans to the provided url. The returned
 // TracerProvider will also use a Resource configured with all the information
 // about the application.
@@ -150,27 +177,10 @@ func jaegerTracerProvider(url string) (*sdktrace.TracerProvider, error) {
 		// Record information about this application in an Resource.
 		sdktrace.WithResource(resource.NewWithAttributes(
 			semconv.SchemaURL,
-			semconv.ServiceNameKey.String(viper.GetString("jaeger.service")),
+			semconv.ServiceNameKey.String(viper.GetString("jaeger.service.config")),
 			attribute.String("environment", viper.GetString("jaeger.environment")),
 			attribute.Int64("ID", viper.GetInt64("jaeger.id")),
 		)),
 	)
 	return tp, nil
-}
-
-// SetupCloseHandler creates a listener on a new goroutine which will notify the program if it receives an interrupt from the OS.
-// We then handle this by calling our clean up procedure and exiting the program.
-func SetupCloseHandler(ctx context.Context) {
-	c := make(chan os.Signal)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		<-c
-		tracer := otel.Tracer("main/readConfig")
-		var span trace.Span
-		_, span = tracer.Start(ctx, "setupCloseHandler")
-		defer span.End()
-
-		span.AddEvent("SIGTERM received... closing program")
-		os.Exit(0)
-	}()
 }

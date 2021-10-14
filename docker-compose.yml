@@ -2,7 +2,6 @@ version: "3.9"
 services:
   fluent-bit:
     image: fluent/fluent-bit:1.8
-    # command: "/fluent-bit/bin/fluent-bit -c /fluent-bit/etc/fluent-bit.conf"
     ports:
       - "24225:24224/tcp"
       - "24225:24224/udp"
@@ -20,12 +19,17 @@ services:
     ports:
       - "6379:6379"
       - "9121:9121"
+    healthcheck:
+      test: [ "CMD-SHELL", "/bin/bash -c \"[[ $$(redis-cli ping) == 'PONG' ]] && echo 0 || echo 1\"" ]
+      interval: 1m30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     logging:
       driver: "fluentd"
       options:
         tag: "twitch-bot-config/redis"
         fluentd-address: "localhost:24225"
-        # fluentd-async: "true"
     depends_on:
       - fluent-bit
     networks:
@@ -74,11 +78,9 @@ services:
       options:
         tag: "twitch-bot-config/bot-config"
         fluentd-address: "localhost:24225"
-        # fluentd-async: "true"
     depends_on:
       - "redis"
       - "fluent-bit"
-      - "jaeger"
     networks:
       - botnet
 

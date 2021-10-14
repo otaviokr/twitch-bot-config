@@ -9,7 +9,9 @@ irc:
 
 jaeger:
   uri: "http://jaeger:14268/api/traces"
-  service: "botavio_kr-twitch"
+  service:
+    - config: "twitch-bot-config"
+    - bot: "twitch-bot-botaviokr"
 	environment: "development"
 	id: 1
 

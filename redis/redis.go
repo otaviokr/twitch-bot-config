@@ -5,8 +5,10 @@ import (
 	"fmt"
 
 	"github.com/go-redis/redis"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -18,7 +20,8 @@ const (
 var (
 	varStrings = []string{
 		"jaeger.uri",
-		"jaeger.service",
+		"jaeger.service.config",
+		"jaeger.service.bot",
 		"jaeger.environment",
 		"irc.target",
 		"irc.nickname",
@@ -55,11 +58,25 @@ var (
 	}
 )
 
+// Redis is a struct that interacts with a Redis instance.
 type Redis struct {
 	client *redis.Client
 }
 
-func NewClient(uri string, port int, pwd string, db int) (*Redis) {
+// NewClient connects to the Redis instance described and returns a connected object.
+// Context is used for tracing, if you are not working with Tracing (eg, Jaeger), just use the default.
+func NewClient(ctx context.Context, uri string, port int, pwd string, db int) (*Redis) {
+	tracer := otel.Tracer("redis")
+	var span trace.Span
+	_, span = tracer.Start(ctx, "NewClient",
+		trace.WithAttributes(
+			attribute.String("uri", uri),
+			attribute.Int("port", port),
+			attribute.String("pwd", pwd),
+			attribute.Int("db", db),
+	))
+	defer span.End()
+
 	return &Redis{
 		client: redis.NewClient(&redis.Options{
 			Addr: fmt.Sprintf("%s:%d", uri, port),
@@ -69,13 +86,14 @@ func NewClient(uri string, port int, pwd string, db int) (*Redis) {
 	}
 }
 
+// LoadFromFile will read the variables from the configuration file and load them into the Redis instance.
+// Context is used for tracing, if you are not working with Tracing (eg, Jaeger), just use the default.
 func (c *Redis) LoadFromFile(ctx context.Context) {
+	log.Info("Loading variables from file")
 	tracer := otel.Tracer("redis")
 	var span trace.Span
 	_, span = tracer.Start(ctx, "LoadValues")
 	defer span.End()
-
-	span.AddEvent("Client defined")
 
 	c.saveStrings()
 	span.AddEvent("Strings loaded from configuration file")
@@ -90,24 +108,31 @@ func (c *Redis) LoadFromFile(ctx context.Context) {
 	span.AddEvent("Slice of Strings loaded from configuration file")
 }
 
+// Ping will check if communication with Redis instance is active.
+//
+// Expected response is "PONG".
 func (c *Redis) Ping() (string) {
 	return c.client.Ping().Val()
 }
 
+// GetString will fetch the given key in Redis.
 func (c *Redis) GetString(k string) (string) {
 	return c.client.Get(k).Val()
 }
 
+// GetInt will fetch the given key in Redis.
 func (c *Redis) GetInt(k string) (int) {
 	i, _ := c.client.Get(k).Int()
 	return i
 }
 
+// GetBool will fetch the given key in Redis.
 func (c *Redis) GetBool(k string) (bool) {
 	i, _ := c.client.Get(k).Int()
 	return i == 1
 }
 
+// GetSliceString will fetch the given key in Redis.
 func (c *Redis) GetSliceString(k string) ([]string) {
 	return c.client.SMembers(k).Val()
 }
